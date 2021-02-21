@@ -1,3 +1,2 @@
-git clone https://github.com/Schrodinger-kat/google-cloud-activity.git
-  cd /google-cloud-activity/wordpress/
-  sudo sh install.sh
+git clone https://github.com/Vino-stack/myrepo1.git
+sudo sh install.sh

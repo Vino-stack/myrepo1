@@ -8,6 +8,7 @@ provider "google"{
 resource "google_compute_network" "vpc-net"{
   name="vino-terraform-vpc"
   auto_create_subnetworks = "false"
+  routing_mode = "REGIONAL"
 }
 resource "google_compute_subnetwork" "vpc-subnet" {
   name = "vino-terraform-subnet"
@@ -26,10 +27,8 @@ resource "google_compute_firewall" "vpcf" {
 
   allow {
     protocol = "tcp"
-    ports    = ["80","22", "8080","1337", "1000-2000"]
+    ports    = ["22","80"]
   }
-
-  target_tags = ["paas-monitor"]
   source_ranges = ["0.0.0.0/0"]
 }
 
@@ -75,10 +74,6 @@ instance_template  = google_compute_instance_template.tmp1.id
     name = "https"
     port = 443
   }
-  named_port {
-    name = "paas-monitor"
-    port = 1337
-  }
 }
 
 resource "google_compute_region_autoscaler" "wpex" {
@@ -109,17 +104,14 @@ resource "google_compute_http_health_check" "hc" {
 
   timeout_sec        = 5
   check_interval_sec = 5
-  port               = 1337
-
-  lifecycle {
-    create_before_destroy = true
+  tcp_health_check {
+    port = "80"
   }
 }
 
 resource "google_compute_backend_service" "backend" {
   name             = "wp-backend"
   protocol         = "HTTP"
-  port_name        = "paas-monitor"
   timeout_sec      = 10
   session_affinity = "NONE"
 
@@ -135,6 +127,7 @@ resource "google_compute_global_forwarding_rule" "lbfw" {
   ip_address = google_compute_global_address.sip.address
   port_range = "80"
   target     = google_compute_target_http_proxy.proxy.self_link
+  all_ports  = true
 }
 
 resource "google_compute_url_map" "mapping" {
@@ -161,11 +154,8 @@ resource "google_sql_database_instance" "wp-ins" {
       enabled = true
     }
     ip_configuration {
-      ipv4_enabled    = true
-      //private_network = google_compute_network.pokenav.self_link
+      ipv4_enabled    = true    
   }
-
 }
-
   deletion_protection  = "false"
 }
